@@ -7,13 +7,8 @@ using MLAgents;
 public class DogAgent : Agent {
 
     [Header("Target To Walk Towards")] 
-    [Space(10)] 
-    public Brain runToTargetBrain;
-    public Brain idleBrain;
-    public Brain rollOverBrain;
 
     public Transform target;
-    // public Transform ground;
     public Transform spawnArea;
     public Bounds spawnAreaBounds;
     public bool respawnTargetWhenTouched;
@@ -21,7 +16,6 @@ public class DogAgent : Agent {
 
 
     [Header("Body Parts")] 
-    [Space(10)] 
     public Transform body;
     public Transform leg0_upper;
     public Transform leg1_upper;
@@ -31,57 +25,25 @@ public class DogAgent : Agent {
     public Transform leg1_lower;
     public Transform leg2_lower;
     public Transform leg3_lower;
-    // public Dictionary<Transform, BodyPart> bodyParts = new Dictionary<Transform, BodyPart>();
-    // public List<BodyPart> bodyPartsList = new List<BodyPart>();
 
 
-    [Header("Joint Settings")] 
-    [Space(10)] 
-	// public float maxJointSpring;
-	// public float jointDampen;
-	// public float maxJointForceLimit;
-	public Vector3 footCenterOfMassShift; //used to shift the centerOfMass on the feet so the agent isn't so top heavy
-	public Vector3 bodyCenterOfMassShift; //used to shift the centerOfMass on the feet so the agent isn't so top heavy
+    [Header("Orientation")] 
 	public Vector3 dirToTarget;
 	public Vector3 dirToTargetNormalized;
 	public Vector3 bodyVelNormalized;
 	public float movingTowardsDot;
-	public float facingDot;
-	// public float facingDotQuat;
 
 
     [Header("Reward Functions To Use")] 
-    [Space(10)] 
     public bool rewardMovingTowardsTarget; //agent should move towards target
     public bool rewardFacingTarget; //agent should face the target
     public bool rewardUseTimePenalty; //hurry up
 
 
-    [Header("Foot Grounded Visualization")] 
-    [Space(10)] 
-    public bool useFootGroundedVisualization;
-    public MeshRenderer foot0;
-    public MeshRenderer foot1;
-    public MeshRenderer foot2;
-    public MeshRenderer foot3;
-    public Material groundedMaterial;
-    public Material unGroundedMaterial;
     List<Rigidbody> allRBs = new List<Rigidbody>();
-    public bool isNewDecisionStep;
-    public int currentDecisionStep;
-    // public float maxJointAngleChangePerDecision = 10f;
-    // public float maxJointStrengthChangePerDecision = .1f; 
-    // Vector3 currentAvgCoM;
+    bool isNewDecisionStep;
+    int currentDecisionStep;
 
-    // public bool testJointRotation;
-    // public Vector3 targetRotUpper;
-    // public Vector3 targetRotLower;
-
-    public SpeedUI speedUI;
-    public GameObject jersey;
-    bool fastest;
-
-    // public Transform orientationTransform;
     public float closestDistanceToTargetSoFarSqrMag;
 
 
@@ -94,7 +56,6 @@ public class DogAgent : Agent {
 
     public float totalReward;
     public float agentReward;
-    // public bool printRewardsToConsole;
     public float maxTurnSpeed;
     public ForceMode turningForceMode;
     public float turnOffset;
@@ -127,8 +88,6 @@ public class DogAgent : Agent {
 
 	public List<AudioClip> barkSounds = new List <AudioClip>();
 	public AudioSource audioSourceSFX;
-	// public AudioSource audioPantingSFX;
-    // public AudioClip dogPantingSoundClip;
 
 
     void Awake()
@@ -139,26 +98,19 @@ public class DogAgent : Agent {
         audioSourceSFX.spatialBlend = .75f;
         audioSourceSFX.minDistance = .7f;
         audioSourceSFX.maxDistance = 5;
-        // audioPantingSFX = body.gameObject.AddComponent<AudioSource>();
-        // audioPantingSFX.clip = dogPantingSoundClip;
-        // audioPantingSFX.loop = true;
-        // audioPantingSFX.Play();
-
-        // target = leg2_lower;
-        // shouldIdle = true;
         boneController = FindObjectOfType<ThrowBone>();
         if(gameMode)
         {
             target = boneController.returnPoint;
         }
-                // Get the ground's bounds
+        // Get the ground's bounds
         spawnAreaBounds = spawnArea.GetComponent<Collider>().bounds;
         closestDistanceToTargetSoFarSqrMag = 10000;
         jdController = GetComponent<JointDriveController>();
 
         // jdController.bodyPartsDictList.Clear();
         // speedUI = FindObjectOfType<SpeedUI>();
-        jersey.SetActive(false);
+        // jersey.SetActive(false);
         //Setup each body part
         jdController.SetupBodyPart(body);
         jdController.SetupBodyPart(leg0_upper);
@@ -190,6 +142,18 @@ public class DogAgent : Agent {
         target.position = spawnArea.transform.position + new Vector3(randomPosX, 1f, randomPosZ);
     }
 
+	/// <summary>
+    /// Agent touched the target
+    /// </summary>
+	public void TouchedTarget()
+	{
+		AddReward(1); //good boy
+        if(respawnTargetWhenTouched)
+        {
+		     SpawnBone();
+        }
+		Done();
+	}
 
     public void PickUpBone()
     {
@@ -208,12 +172,14 @@ public class DogAgent : Agent {
             returningBone = true;
         // }
 
-        // TouchedTarget();
+        if(brain.brainType == BrainType.External) //if it's an external brain then we are training.
+        {
+            TouchedTarget();
+        }
     }
 
     public void DropBone()
     {
-            // print("DropBone()");
         if(boneController)
         {
             boneController.boneRB.isKinematic = false;
@@ -257,20 +223,6 @@ public class DogAgent : Agent {
     }
 
 
-	/// <summary>
-    /// Agent touched the target
-    /// </summary>
-	public void TouchedTarget()
-	{
-		AddReward(1); //higher impact should be rewarded
-        reachedTargetReward+=1;
-        totalReward+=1;
-        if(respawnTargetWhenTouched)
-        {
-		     SpawnBone();
-        }
-		Done();
-	}
 
 
     //We only need to change the joint settings based on decision freq.
@@ -301,12 +253,6 @@ public class DogAgent : Agent {
         jdController.bodyPartsDict[body].rb.AddForceAtPosition(-rotDir.normalized * speed * Time.deltaTime, -body.forward * turnOffset, turningForceMode); //tug on the back
     }
 
-    // void StartIdling()
-    // {
-    //     idling = true;
-    //     target = body;
-
-    // }
 
     void AllStatesFalse()
     {
@@ -332,52 +278,32 @@ public class DogAgent : Agent {
         }
     }
     public IEnumerator GoGetBone()
-    {       
-        // print("started GoGetBone()");
-        // idling = false;
+    {   
+        //GO GET THE STICK
         target = boneController.bone;
         runningToBone = true;
-        // boneController.canThrowBone = false;
-        // if(boneController.currentlyTouching)
-        // {
-        //     yield return null;
-        // }
-        // else if(dirToTarget.sqrMagnitude > .7f )
-        // {
-        //     PickUpBone();
-        //     runningToBone = false;
 
-        // }
-
+        //WHEN WE'RE IN RANGE
         while(dirToTarget.sqrMagnitude > 1f)
         {
-            // audioSourceSFX.PlayOneShot(barkSounds[Random.Range( 0, barkSounds.Count)], 1);
-
-            // yield return new WaitForSeconds(Random.Range(1, 3));
-
             yield return null;
         }
         PickUpBone();
-        // audioPantingSFX.Stop();
         runningToBone = false;
 
-
-
+        //RETURN THE STICK
         target = boneController.returnPoint;
         returningBone = true;
-        yield return null;
+        yield return null; //wait a step
 
+        //WHEN WE'RE IN RANGE
         while(dirToTarget.sqrMagnitude > 1f)
         {
             yield return null;
         }
         DropBone();
         returningBone = false;
-        // print("returned Bone");
         boneController.canThrowBone = true;
-
-
-
     }
 
 
@@ -426,26 +352,6 @@ public class DogAgent : Agent {
         // }
 
         agentReward = GetCumulativeReward();
-        // print(jdController.bodyPartsDict[body].rb.velocity.z);
-        if(speedUI)
-        {
-            var speedMPH = jdController.bodyPartsDict[body].rb.velocity.magnitude * 2.237f;
-            if(speedMPH > speedUI.topSpeed)
-            {
-                speedUI.CollectSpeed(jdController.bodyPartsDict[body].rb.velocity.magnitude * 2.237f);
-                speedUI.fastestDog = this;
-                fastest = true;
-            }
-            if(speedUI.fastestDog == this)
-            {
-                jersey.SetActive(true);
-            }
-            else
-            {
-                jersey.SetActive(false);
-            }
-
-        }
 
         float dirSqr = dirToTarget.sqrMagnitude;
         if(dirSqr < closestDistanceToTargetSoFarSqrMag)
