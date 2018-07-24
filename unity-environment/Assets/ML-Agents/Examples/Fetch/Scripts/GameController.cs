@@ -19,11 +19,6 @@ public class GameController : MonoBehaviour {
 	public AudioSource audioSourceBackgroundMusic;
 	public AudioSource audioSourceSFX;
 	public bool playBackgroundMusic = true;
-	public List<AudioClip> gameStartingSounds = new List <AudioClip>();
-	public List<AudioClip> wonRoundSounds = new List <AudioClip>();
-	public List<AudioClip> wonGameSounds = new List <AudioClip>();
-	public List<AudioClip> scoredPointSounds = new List <AudioClip>();
-	// public List<AudioClip> backgroundMusic = new List <AudioClip>();
 	public AudioClip backgroundMusic;
 	public AudioClip buttonClickStartSFX;
 	public AudioClip buttonClickEndSFX;
@@ -39,37 +34,13 @@ public class GameController : MonoBehaviour {
 		audioSourceBackgroundMusic.volume = .5f;
 	}
 
-	//plays when game starts
-	public void PlayGameStartingAudio()
-	{
-		foreach (AudioClip clip in gameStartingSounds)
-		{
-			audioSourceSFX.PlayOneShot(clip, 1);
-		}
-	}
 
 	public void PlayGameBackgroundAudio()
 	{
-		{
-			// audioSourceBackgroundMusic.clip = backgroundMusic[Random.Range( 0, backgroundMusic.Count)];
-			audioSourceBackgroundMusic.clip = backgroundMusic;
-			audioSourceBackgroundMusic.Play();
-		}
+		audioSourceBackgroundMusic.clip = backgroundMusic;
+		audioSourceBackgroundMusic.Play();
 	}
 
-
-	//plays when game is completely over
-	public void PlayGameDoneAudio()
-	{
-		foreach (AudioClip clip in wonGameSounds)
-		{
-			audioSourceSFX.PlayOneShot(clip);
-		}
-	}
-
-
-
-	// Use this for initialization
 	void Awake () {
 		throwController = GetComponent<ThrowBone>();
 		cmBrain = FindObjectOfType<CinemachineBrain>();
@@ -94,8 +65,6 @@ public class GameController : MonoBehaviour {
 		throwController.enabled = true;
 		stickTitleScreen.SetActive(false);
 		throwController.bone.gameObject.SetActive(true);
-
-
 	}
 
 	public void EndGame()
